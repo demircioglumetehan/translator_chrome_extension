@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metin Seslendirici ve Özetleyici</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔊 Metin Seslendirici</h1>
+      <p class="subtitle">Metinleri seslendir ve özetle</p>
+    </header>
+
+    <div class="section">
+      <h2>Ses Ayarları</h2>
+
+      <div class="form-group">
+        <label for="language">Dil Seçimi:</label>
+        <select id="language">
+          <option value="tr-TR">Türkçe</option>
+          <option value="en-US">İngilizce (US)</option>
+          <option value="en-GB">İngilizce (UK)</option>
+          <option value="de-DE">Almanca</option>
+          <option value="fr-FR">Fransızca</option>
+          <option value="es-ES">İspanyolca</option>
+          <option value="it-IT">İtalyanca</option>
+          <option value="ru-RU">Rusça</option>
+          <option value="ja-JP">Japonca</option>
+          <option value="zh-CN">Çince</option>
+          <option value="ar-SA">Arapça</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="voiceRate">Hız: <span id="rateValue">1.0</span>x</label>
+        <input type="range" id="voiceRate" min="0.5" max="2.0" step="0.1" value="1.0">
+      </div>
+
+      <div class="form-group">
+        <label for="voicePitch">Ton: <span id="pitchValue">1.0</span></label>
+        <input type="range" id="voicePitch" min="0.5" max="2.0" step="0.1" value="1.0">
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>n8n Entegrasyonu</h2>
+
+      <div class="form-group">
+        <label for="n8nWebhook">Webhook URL:</label>
+        <input
+          type="url"
+          id="n8nWebhook"
+          placeholder="https://your-n8n.com/webhook/..."
+        >
+        <small>Metni özetleme için n8n webhook URL'nizi girin</small>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Test</h2>
+
+      <div class="form-group">
+        <textarea
+          id="testText"
+          placeholder="Test için bir metin yazın..."
+          rows="3"
+        >Merhaba! Bu bir test metnidir.</textarea>
+      </div>
+
+      <div class="button-group">
+        <button id="testSpeakBtn" class="btn btn-primary">
+          🔊 Seslendir
+        </button>
+        <button id="stopSpeakBtn" class="btn btn-secondary">
+          ⏹ Durdur
+        </button>
+        <button id="testWebhookBtn" class="btn btn-success">
+          📤 Webhook Test
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <button id="saveBtn" class="btn btn-save">
+        💾 Ayarları Kaydet
+      </button>
+    </div>
+
+    <div id="status" class="status hidden"></div>
+
+    <footer>
+      <p><strong>Kullanım:</strong></p>
+      <ul>
+        <li>Bir metni seçin</li>
+        <li>Sağ tıklayın</li>
+        <li>"Metni Seslendir" veya "Metni Özetle" seçin</li>
+      </ul>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

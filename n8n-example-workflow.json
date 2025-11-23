@@ -1,0 +1,155 @@
+{
+  "name": "Chrome Extension Text Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chrome-summarize",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "chrome-extension-webhook"
+    },
+    {
+      "parameters": {
+        "content": "=## Gelen Metin\n\n{{ $json.body.text }}\n\n**Kaynak:** {{ $json.body.source }}\n**Zaman:** {{ $json.body.timestamp }}",
+        "options": {}
+      },
+      "id": "note-node",
+      "name": "Not: Gelen Veri",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "text-extract",
+              "name": "text",
+              "value": "={{ $json.body.text }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp-extract",
+              "name": "timestamp",
+              "value": "={{ $json.body.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "char-count",
+              "name": "characterCount",
+              "value": "={{ $json.body.text.length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-node",
+      "name": "Veriyi Ayıkla",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "content": "=## Özet Prompt\n\nBu node'u bir AI node (OpenAI, Claude, etc.) ile değiştirin.\n\nÖrnek prompt:\n```\nAşağıdaki metni özetle:\n\n{{ $json.text }}\n```",
+        "options": {}
+      },
+      "id": "ai-note",
+      "name": "Not: AI Özeti Buraya",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [690, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "summary-placeholder",
+              "name": "summary",
+              "value": "Bu bir örnek özettir. Buraya AI node'undan gelen özet gelecek.",
+              "type": "string"
+            },
+            {
+              "id": "original-text",
+              "name": "originalText",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ai-placeholder",
+      "name": "Özet Oluştur (Placeholder)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [690, 300],
+      "notes": "Bu node'u OpenAI veya Claude gibi bir AI servisi ile değiştirin"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"summary\": $json.summary,\n  \"characterCount\": $json.originalText.length,\n  \"timestamp\": new Date().toISOString()\n} }}",
+        "options": {}
+      },
+      "id": "response-node",
+      "name": "Webhook'a Yanıt Dön",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [910, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Veriyi Ayıkla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veriyi Ayıkla": {
+      "main": [
+        [
+          {
+            "node": "Özet Oluştur (Placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet Oluştur (Placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Webhook'a Yanıt Dön",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-23T10:00:00.000Z",
+  "versionId": "1"
+}
