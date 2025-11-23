@@ -1,0 +1,292 @@
+{
+  "name": "Chrome Extension TTS & Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chrome-tts-extension",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "operation": "equals",
+              "value2": "speak"
+            }
+          ]
+        }
+      },
+      "id": "if-action-1",
+      "name": "IF - Action Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "user",
+              "message": "=Translate the following text to {{ $json.body.targetLanguage }}. Only return the translated text, nothing else:\n\n{{ $json.body.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "chatgpt-translate",
+      "name": "ChatGPT - Translate",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "tts-1-hd",
+        "voice": "nova",
+        "input": "={{ $json.output }}",
+        "options": {
+          "responseFormat": "mp3"
+        }
+      },
+      "id": "openai-tts",
+      "name": "OpenAI TTS",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Binary veriyi base64'e çevir\nconst binaryData = items[0].binary.audio;\nconst audioBase64 = Buffer.from(binaryData.data).toString('base64');\nconst translatedText = items[0].json.output;\n\nreturn [{\n  json: {\n    audioBase64: audioBase64,\n    mimeType: 'audio/mpeg',\n    translatedText: translatedText\n  }\n}];"
+      },
+      "id": "code-base64",
+      "name": "Convert to Base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"audioBase64\": $json.audioBase64, \"mimeType\": $json.mimeType, \"translatedText\": $json.translatedText } }}",
+        "options": {}
+      },
+      "id": "respond-webhook-speak",
+      "name": "Respond - Speech",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "operation": "equals",
+              "value2": "summarize"
+            }
+          ]
+        }
+      },
+      "id": "if-summarize",
+      "name": "IF - Summarize Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "user",
+              "message": "=Summarize the following text in {{ $json.body.targetLanguage }}. Make it concise (max 3-4 sentences) and clear:\n\n{{ $json.body.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "chatgpt-summarize",
+      "name": "ChatGPT - Summarize",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const summary = items[0].json.output;\nconst originalText = items[0].json.body.text;\n\nreturn [{\n  json: {\n    summary: summary,\n    originalLength: originalText.length,\n    summaryLength: summary.length,\n    compressionRatio: (summary.length / originalText.length * 100).toFixed(2) + '%'\n  }\n}];"
+      },
+      "id": "code-stats",
+      "name": "Calculate Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"summary\": $json.summary, \"originalLength\": $json.originalLength, \"summaryLength\": $json.summaryLength, \"compressionRatio\": $json.compressionRatio } }}",
+        "options": {}
+      },
+      "id": "respond-webhook-summary",
+      "name": "Respond - Summary",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"Invalid action. Use 'speak' or 'summarize'\" } }}",
+        "responseCode": 400,
+        "options": {}
+      },
+      "id": "respond-error",
+      "name": "Respond - Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 550]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "IF - Action Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Action Check": {
+      "main": [
+        [
+          {
+            "node": "ChatGPT - Translate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF - Summarize Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatGPT - Translate": {
+      "main": [
+        [
+          {
+            "node": "OpenAI TTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI TTS": {
+      "main": [
+        [
+          {
+            "node": "Convert to Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to Base64": {
+      "main": [
+        [
+          {
+            "node": "Respond - Speech",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Summarize Check": {
+      "main": [
+        [
+          {
+            "node": "ChatGPT - Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatGPT - Summarize": {
+      "main": [
+        [
+          {
+            "node": "Calculate Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Stats": {
+      "main": [
+        [
+          {
+            "node": "Respond - Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-23T00:00:00.000Z",
+  "versionId": "1"
+}

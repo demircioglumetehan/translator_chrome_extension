@@ -1,205 +1,215 @@
-# 🔊 Metin Seslendirici ve Özetleyici Chrome Eklentisi
+# 🔊 Chrome Metin Seslendirici ve Özetleyici
 
-Web sayfalarındaki seçili metinleri seslendirebilen ve n8n ile entegre çalışan güçlü bir Chrome eklentisi.
+ChatGPT ve OpenAI TTS ile çalışan, seçili metinleri çevirip seslendiren ve özetleyen Chrome eklentisi.
 
 ## ✨ Özellikler
 
-- 🗣️ **Metin Seslendirme (Text-to-Speech)**: Seçili metinleri 11 farklı dilde seslendirir
-- 🌍 **Çoklu Dil Desteği**: Türkçe, İngilizce, Almanca, Fransızca, İspanyolca ve daha fazlası
-- ⚙️ **Özelleştirilebilir Ses Ayarları**: Ses hızı ve ton ayarları
-- 🔗 **n8n Entegrasyonu**: Seçili metinleri n8n webhook'una gönderir
-- 🎯 **Sağ Tıklama Menüsü**: Kolay erişim için context menu desteği
-- 💾 **Ayar Kaydetme**: Tüm ayarlarınız otomatik olarak saklanır
-- 🧪 **Test Modu**: Eklenti içinden ayarlarınızı test edin
+- 🗣️ **Özel TTS**: OpenAI TTS ile doğal ve kaliteli seslendirme
+- 🌍 **Çoklu Dil Desteği**: 13+ dil için çeviri ve seslendirme
+- 📝 **Akıllı Özetleme**: ChatGPT ile metin özetleme
+- 🎯 **Sağ Tık Menüsü**: Herhangi bir metni seçip hızlıca işlem yapın
+- 🎨 **Modern UI**: Sayfa içi özet gösterimi ve bildirimler
+- ⚡ **n8n Entegrasyonu**: Esnek ve özelleştirilebilir iş akışları
 
-## 📦 Kurulum
+## 📸 Nasıl Çalışır
 
-### 1. Eklentiyi İndirin
+### Sağ Tık Menüsü
+Herhangi bir metni seçip sağ tıklayın:
+- **Metni Seslendir**: Metni seçili dile çevirir ve seslendirir
+- **Metni Özetle**: Metni özetler ve seçili dile çevirir
 
-```bash
-git clone https://github.com/kullanici/translator_chrome_extension.git
-cd translator_chrome_extension
+### Özet Popup
+Özetleme sonrası sayfa içinde modern bir popup gösterilir:
+- Özet metni
+- İstatistikler (orijinal uzunluk, özet uzunluk, sıkıştırma oranı)
+- Kopyalama ve seslendirme butonları
+
+## 🚀 Kurulum
+
+### 1. Chrome Eklentisini Yükleyin
+
+1. Bu repoyu klonlayın veya indirin
+2. Chrome'da `chrome://extensions/` adresine gidin
+3. Sağ üstte "Geliştirici modu"nu açın
+4. "Paketlenmemiş öğe yükle" butonuna tıklayın
+5. Proje klasörünü seçin
+
+### 2. n8n Workflow'unu Kurun
+
+**Detaylı kurulum için:** [N8N_WORKFLOW_GUIDE.md](./N8N_WORKFLOW_GUIDE.md)
+
+#### Hızlı Adımlar:
+
+1. **n8n'de workflow oluşturun**:
+   - `n8n-workflow-complete.json` dosyasını n8n'e import edin
+   - VEYA manuel olarak workflow'u oluşturun (rehbere bakın)
+
+2. **OpenAI API Key ekleyin**:
+   - n8n Credentials'a OpenAI API anahtarınızı ekleyin
+   - API anahtarı almak için: https://platform.openai.com/api-keys
+
+3. **Webhook URL'ini kopyalayın**:
+   - n8n'deki Webhook node'undan URL'yi kopyalayın
+   - Örnek: `https://your-n8n.com/webhook/chrome-tts-extension`
+
+### 3. Eklentiyi Yapılandırın
+
+1. Chrome'da eklenti ikonuna tıklayın
+2. **Hedef Dil** seçin (metin bu dile çevrilecek)
+3. **Webhook URL** alanına n8n webhook URL'sini yapıştırın
+4. "💾 Ayarları Kaydet" butonuna tıklayın
+
+## 📖 Kullanım
+
+### Metni Seslendirme
+
+1. Web sayfasında bir metni seçin
+2. Sağ tıklayıp "**Metni Seslendir**" seçin
+3. Metin:
+   - Seçtiğiniz dile çevrilir
+   - OpenAI TTS ile seslendirilir
+   - Otomatik olarak oynatılır
+
+### Metni Özetleme
+
+1. Web sayfasında bir metni seçin
+2. Sağ tıklayıp "**Metni Özetle**" seçin
+3. Özet:
+   - Sayfa içinde popup olarak gösterilir
+   - Chrome bildirimi olarak gösterilir
+   - Kopyalanabilir ve seslendirilebilir
+
+### Test Etme
+
+Eklenti popup'ında:
+1. Test metni girin
+2. "🔊 Seslendir" - Seslendirme testi
+3. "📤 Webhook Test" - Özetleme testi
+
+## 🔧 Teknik Detaylar
+
+### Mimari
+
+```
+Chrome Eklentisi → n8n Webhook → ChatGPT (Çeviri/Özetleme) → OpenAI TTS → Chrome Eklentisi
 ```
 
-### 2. Chrome'a Yükleyin
+### Seslendirme Akışı
 
-1. Chrome tarayıcınızı açın
-2. Adres çubuğuna `chrome://extensions/` yazın
-3. Sağ üst köşeden **"Geliştirici modu"** aktif edin
-4. **"Paketlenmemiş öğe yükle"** butonuna tıklayın
-5. İndirdiğiniz `translator_chrome_extension` klasörünü seçin
-6. Eklenti yüklenecek ve kullanıma hazır olacaktır
+1. Kullanıcı metni seçer ve "Seslendir" tıklar
+2. Chrome Extension metni n8n webhook'una gönderir
+3. ChatGPT metni hedef dile çevirir
+4. OpenAI TTS çevrilmiş metni seslendirir
+5. Ses dosyası base64 olarak Chrome'a döner
+6. Chrome ses dosyasını oynatır
 
-## 🚀 Kullanım
+### Özetleme Akışı
 
-### Temel Kullanım
+1. Kullanıcı metni seçer ve "Özetle" tıklar
+2. Chrome Extension metni n8n webhook'una gönderir
+3. ChatGPT metni özetler ve hedef dile çevirir
+4. Özet Chrome'a döner
+5. Chrome özeti popup ve bildirim olarak gösterir
 
-1. **Metni Seslendirme:**
-   - Bir web sayfasında metni seçin
-   - Sağ tıklayın
-   - **"Metni Seslendir"** seçeneğini tıklayın
-   - Metin seçili dilde seslendirilecektir
+### Teknolojiler
 
-2. **Metni Özetleme (n8n):**
-   - Bir web sayfasında metni seçin
-   - Sağ tıklayın
-   - **"Metni Özetle"** seçeneğini tıklayın
-   - Metin n8n webhook'unuza gönderilecektir
+- **Frontend**: Chrome Extension API (Manifest V3)
+- **Backend**: n8n Workflow Automation
+- **AI/ML**: OpenAI GPT-3.5/4, OpenAI TTS
+- **Audio**: HTML5 Audio API, Base64 encoding
 
-### Ayarlar
-
-Eklenti ikonuna tıklayarak ayarlar panelini açın:
-
-#### 🗣️ Ses Ayarları
-
-- **Dil Seçimi**: 11 farklı dil arasından seçim yapın
-  - Türkçe (tr-TR)
-  - İngilizce (US/UK)
-  - Almanca, Fransızca, İspanyolca, İtalyanca
-  - Rusça, Japonca, Çince, Arapça
-
-- **Hız**: Seslendirme hızını ayarlayın (0.5x - 2.0x)
-- **Ton**: Ses tonunu ayarlayın (0.5 - 2.0)
-
-#### 🔗 n8n Entegrasyonu
-
-- **Webhook URL**: n8n webhook URL'nizi girin
-  - Örnek: `https://your-n8n.com/webhook/summarize`
-
-### n8n Kurulumu
-
-1. n8n'de yeni bir workflow oluşturun
-2. **Webhook** node'u ekleyin
-3. Webhook URL'sini kopyalayın
-4. Eklenti ayarlarına yapıştırın
-5. Gelen veriyi işlemek için node'lar ekleyin
-
-#### Örnek n8n Webhook Veri Formatı
-
-```json
-{
-  "text": "Seçili metin buraya gelir",
-  "timestamp": "2025-11-23T10:30:00.000Z",
-  "source": "chrome-extension"
-}
-```
-
-## 🧪 Test Etme
-
-Eklenti popup'ında test alanı bulunur:
-
-1. **Test Metni Girin**: Alttaki metin kutusuna bir şey yazın
-2. **🔊 Seslendir**: Metni test için seslendirin
-3. **⏹ Durdur**: Seslendirmeyi durdurun
-4. **📤 Webhook Test**: n8n bağlantısını test edin
-
-## 📁 Proje Yapısı
+## 📂 Dosya Yapısı
 
 ```
 translator_chrome_extension/
-├── manifest.json          # Eklenti yapılandırması
-├── background.js          # Arka plan script (TTS + n8n)
-├── popup.html            # Eklenti arayüzü
-├── popup.js              # Popup fonksiyonları
-├── styles.css            # Arayüz stilleri
-├── content.js            # Content script
-├── icons/                # Eklenti ikonları
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
-├── create_icons.py       # İkon oluşturma scripti
-└── README.md             # Bu dosya
+├── manifest.json              # Chrome eklenti yapılandırması
+├── background.js              # Arka plan scriptleri (TTS, özetleme)
+├── content.js                 # Sayfa içi scriptler (özet popup)
+├── popup.html                 # Eklenti ayarları UI
+├── popup.js                   # Ayarlar mantığı
+├── styles.css                 # Popup stilleri
+├── icons/                     # Eklenti ikonları
+├── README.md                  # Bu dosya
+├── N8N_WORKFLOW_GUIDE.md      # n8n kurulum rehberi
+└── n8n-workflow-complete.json # Import edilebilir workflow
 ```
 
-## 🎨 Özelleştirme
+## 🎯 Desteklenen Diller
 
-### İkonları Değiştirme
+- 🇹🇷 Türkçe
+- 🇬🇧 İngilizce
+- 🇩🇪 Almanca
+- 🇫🇷 Fransızca
+- 🇪🇸 İspanyolca
+- 🇮🇹 İtalyanca
+- 🇷🇺 Rusça
+- 🇯🇵 Japonca
+- 🇨🇳 Çince
+- 🇸🇦 Arapça
+- 🇵🇹 Portekizce
+- 🇳🇱 Hollandaca
+- 🇰🇷 Korece
 
-1. `icons/icon.svg` dosyasını düzenleyin
-2. `create_icons.py` scriptini çalıştırın:
+## 💡 İpuçları
 
-```bash
-pip install Pillow
-python3 create_icons.py
-```
+### Maliyet Optimizasyonu
 
-### Dil Ekleme
+- **GPT Model**: GPT-3.5-turbo önerilir (ucuz ve yeterli)
+- **TTS Model**: `tts-1` hızlı ve ucuz, `tts-1-hd` daha kaliteli
+- **Prompt**: Kısa promptlar kullanın, token tasarrufu yapın
 
-`popup.html` dosyasındaki `<select id="language">` bölümüne yeni diller ekleyebilirsiniz:
+### Ses Seçimi
 
-```html
-<option value="pt-BR">Portekizce</option>
-```
+n8n workflow'unda OpenAI TTS node'da değiştirebilirsiniz:
+- `alloy` - Nötr, profesyonel
+- `nova` - Kadın ses (önerilen)
+- `echo` - Erkek ses
+- `shimmer` - Yumuşak kadın ses
 
-## 🔧 Geliştirme
+### Hata Ayıklama
 
-### Gereksinimler
+1. Chrome DevTools Console'u açın (F12)
+2. Background script loglarını kontrol edin
+3. n8n workflow execution history'yi kontrol edin
+4. Network sekmesinde webhook isteklerini kontrol edin
 
-- Chrome/Chromium tabanlı tarayıcı
-- Python 3.x (ikonlar için)
-- Pillow kütüphanesi (ikonlar için)
+## 🐛 Bilinen Sorunlar
 
-### Debug Modu
+- **Audio oynatma**: Bazı sitelerde CSP (Content Security Policy) nedeniyle ses oynatılamayabilir
+- **Popup gösterimi**: Bazı sitelerde z-index çakışması olabilir
+- **Clipboard**: Bazı tarayıcılarda panoya kopyalama çalışmayabilir
 
-1. `chrome://extensions/` sayfasını açın
-2. Eklentinin altındaki **"background page"** linkine tıklayın
-3. Console'da hata mesajlarını görün
+## 🔒 Güvenlik
 
-## 🐛 Bilinen Sorunlar ve Çözümler
+- API anahtarları n8n'de saklanır (Chrome'da değil)
+- Webhook HTTPS üzerinden çalışmalıdır
+- Kullanıcı verisi sadece işlem sırasında kullanılır, saklanmaz
 
-### Seslendirme Çalışmıyor
+## 🚧 Gelecek Özellikler
 
-- Dil ayarlarınızı kontrol edin
-- Chrome'un ses çıkışı olduğundan emin olun
-- Sistem TTS desteğini kontrol edin
+- [ ] Birden fazla ses seçeneği (UI'dan seçilebilir)
+- [ ] Özel prompt şablonları
+- [ ] Ses hızı ve ton kontrolü
+- [ ] Uzun metin bölümleme
+- [ ] Çeviri geçmişi
+- [ ] Favoriler ve kayıtlar
 
-### n8n Bağlantı Hatası
+## 📝 Lisans
 
-- Webhook URL'sinin doğru olduğundan emin olun
-- CORS ayarlarını kontrol edin
-- n8n'in webhook'u aktif olduğundan emin olun
-
-## 📝 Gelecek Özellikler
-
-- [ ] Özetleme sonuçlarını popup'ta gösterme
-- [ ] Çeviri özelliği ekleme
-- [ ] Klavye kısayolları
-- [ ] Tema desteği (dark/light mode)
-- [ ] Seslendirme geçmişi
-- [ ] Batch seslendirme
-- [ ] PDF desteği
+MIT License
 
 ## 🤝 Katkıda Bulunma
 
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/yeniOzellik`)
-3. Commit edin (`git commit -m 'Yeni özellik eklendi'`)
-4. Push edin (`git push origin feature/yeniOzellik`)
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Commit yapın (`git commit -m 'feat: Add amazing feature'`)
+4. Push yapın (`git push origin feature/amazing-feature`)
 5. Pull Request açın
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
 
 ## 👨‍💻 Geliştirici
 
 Metehan Demircioğlu
 
-## 🙏 Teşekkürler
-
-- Chrome TTS API
-- n8n workflow automation
-- Tüm katkıda bulunanlara
-
 ---
 
-**Not**: Bu eklenti yerel olarak çalışır ve verileriniz sadece seçtiğiniz n8n webhook'una gönderilir. Hiçbir üçüncü taraf servise veri gönderilmez.
-
-## 💡 İpuçları
-
-- **Performans**: Çok uzun metinleri seslendirirken hız ayarını artırın
-- **n8n**: Webhook'tan gelen metni AI ile özetlemek için OpenAI/Claude node'u kullanabilirsiniz
-- **Güvenlik**: Webhook URL'nizi kimseyle paylaşmayın
-- **Test**: Her yeni ayar yaptığınızda test butonunu kullanın
-
-Keyifli kullanımlar! 🎉
+**Made with ❤️ using OpenAI, n8n, and Chrome Extensions**

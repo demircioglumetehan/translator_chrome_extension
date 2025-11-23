@@ -1,9 +1,5 @@
 // DOM elementleri
-const languageSelect = document.getElementById('language');
-const voiceRateInput = document.getElementById('voiceRate');
-const voicePitchInput = document.getElementById('voicePitch');
-const rateValueSpan = document.getElementById('rateValue');
-const pitchValueSpan = document.getElementById('pitchValue');
+const targetLanguageSelect = document.getElementById('targetLanguage');
 const n8nWebhookInput = document.getElementById('n8nWebhook');
 const testTextArea = document.getElementById('testText');
 const testSpeakBtn = document.getElementById('testSpeakBtn');
@@ -14,15 +10,6 @@ const statusDiv = document.getElementById('status');
 
 // Sayfa yüklendiğinde ayarları yükle
 document.addEventListener('DOMContentLoaded', loadSettings);
-
-// Range input değerlerini göster
-voiceRateInput.addEventListener('input', () => {
-  rateValueSpan.textContent = voiceRateInput.value;
-});
-
-voicePitchInput.addEventListener('input', () => {
-  pitchValueSpan.textContent = voicePitchInput.value;
-});
 
 // Ayarları kaydet butonu
 saveBtn.addEventListener('click', saveSettings);
@@ -39,18 +26,10 @@ testWebhookBtn.addEventListener('click', testWebhook);
 // Ayarları yükle
 function loadSettings() {
   chrome.storage.sync.get(
-    ['language', 'voiceRate', 'voicePitch', 'n8nWebhook'],
+    ['targetLanguage', 'n8nWebhook'],
     (result) => {
-      if (result.language) {
-        languageSelect.value = result.language;
-      }
-      if (result.voiceRate) {
-        voiceRateInput.value = result.voiceRate;
-        rateValueSpan.textContent = result.voiceRate;
-      }
-      if (result.voicePitch) {
-        voicePitchInput.value = result.voicePitch;
-        pitchValueSpan.textContent = result.voicePitch;
+      if (result.targetLanguage) {
+        targetLanguageSelect.value = result.targetLanguage;
       }
       if (result.n8nWebhook) {
         n8nWebhookInput.value = result.n8nWebhook;
@@ -62,9 +41,7 @@ function loadSettings() {
 // Ayarları kaydet
 function saveSettings() {
   const settings = {
-    language: languageSelect.value,
-    voiceRate: parseFloat(voiceRateInput.value),
-    voicePitch: parseFloat(voicePitchInput.value),
+    targetLanguage: targetLanguageSelect.value,
     n8nWebhook: n8nWebhookInput.value.trim()
   };
 
@@ -74,18 +51,28 @@ function saveSettings() {
 }
 
 // Test seslendirme
-function testSpeak() {
+async function testSpeak() {
   const text = testTextArea.value.trim();
+  const targetLanguage = targetLanguageSelect.value;
+
   if (!text) {
     showStatus('Lütfen bir test metni girin!', 'error');
     return;
   }
 
+  showStatus('Metin seslendiriliyor... 🔊', 'success');
+
   chrome.runtime.sendMessage(
-    { action: 'speakText', text: text },
+    {
+      action: 'speakText',
+      text: text,
+      targetLanguage: targetLanguage
+    },
     (response) => {
       if (response && response.success) {
-        showStatus('Metin seslendiriliyor... 🔊', 'success');
+        showStatus('Seslendirme başarılı! ✓', 'success');
+      } else if (response && response.error) {
+        showStatus(`Hata: ${response.error}`, 'error');
       }
     }
   );
@@ -104,6 +91,7 @@ function stopSpeaking() {
 async function testWebhook() {
   const webhookUrl = n8nWebhookInput.value.trim();
   const text = testTextArea.value.trim();
+  const targetLanguage = targetLanguageSelect.value;
 
   if (!webhookUrl) {
     showStatus('Lütfen webhook URL\'sini girin!', 'error');
@@ -116,7 +104,7 @@ async function testWebhook() {
   }
 
   try {
-    showStatus('Webhook\'a gönderiliyor...', 'success');
+    showStatus('Webhook\'a özetleme isteği gönderiliyor...', 'success');
 
     const response = await fetch(webhookUrl, {
       method: 'POST',
@@ -125,6 +113,8 @@ async function testWebhook() {
       },
       body: JSON.stringify({
         text: text,
+        targetLanguage: targetLanguage,
+        action: 'summarize',
         timestamp: new Date().toISOString(),
         source: 'chrome-extension-test'
       })
@@ -133,7 +123,11 @@ async function testWebhook() {
     if (response.ok) {
       const data = await response.json();
       console.log('Webhook yanıtı:', data);
-      showStatus('Webhook testi başarılı! ✓', 'success');
+      if (data.summary) {
+        showStatus(`✓ Özet: ${data.summary.substring(0, 100)}...`, 'success');
+      } else {
+        showStatus('Webhook testi başarılı! ✓', 'success');
+      }
     } else {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }

@@ -6,8 +6,8 @@
   "permissions": [
     "contextMenus",
     "storage",
-    "tts",
-    "activeTab"
+    "activeTab",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"
