@@ -1,14 +1,26 @@
-// Content script - Sayfa içi özet gösterimi
+// Content script - Sayfa içi özet gösterimi ve audio oynatma
 
 console.log('Metin Seslendirici eklentisi yüklendi');
 
 // Özet popup elementini tut
 let summaryPopup = null;
 
+// Audio oynatma için global değişken
+let currentAudio = null;
+
 // Background script'ten gelen mesajları dinle
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'showSummary') {
     showSummaryPopup(request.summary, request.stats);
+    sendResponse({ success: true });
+  } else if (request.action === 'playAudio') {
+    // Audio oynat
+    playAudioFromBase64(request.audioBase64, request.mimeType)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true; // Async response için
+  } else if (request.action === 'stopAudio') {
+    stopCurrentAudio();
     sendResponse({ success: true });
   }
   return true;
@@ -101,6 +113,74 @@ function speakSummary(summary) {
     action: 'speakText',
     text: summary
   });
+}
+
+// Audio oynatma fonksiyonu (Content Script'te çalışır)
+async function playAudioFromBase64(base64Data, mimeType = 'audio/mpeg') {
+  return new Promise((resolve, reject) => {
+    try {
+      console.log('Content Script: Playing audio, base64 length:', base64Data?.length);
+
+      // Önce aktif sesi durdur
+      stopCurrentAudio();
+
+      if (!base64Data || base64Data.length === 0) {
+        reject(new Error('Base64 data boş'));
+        return;
+      }
+
+      // Data URL oluştur
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+
+      // Audio element oluştur
+      currentAudio = new Audio(dataUrl);
+
+      currentAudio.onloadedmetadata = () => {
+        console.log('Content Script: Audio metadata loaded, duration:', currentAudio.duration);
+      };
+
+      currentAudio.onplay = () => {
+        console.log('Content Script: Audio started playing');
+      };
+
+      currentAudio.onended = () => {
+        console.log('Content Script: Audio playback ended');
+        currentAudio = null;
+        resolve();
+      };
+
+      currentAudio.onerror = (e) => {
+        console.error('Content Script: Audio playback error:', e);
+        console.error('Error details:', currentAudio.error);
+        currentAudio = null;
+        reject(new Error('Ses dosyası oynatılamadı'));
+      };
+
+      // Oynat
+      currentAudio.play()
+        .then(() => {
+          console.log('Content Script: play() resolved');
+        })
+        .catch((err) => {
+          console.error('Content Script: play() rejected:', err);
+          reject(err);
+        });
+
+    } catch (error) {
+      console.error('Content Script: playAudioFromBase64 exception:', error);
+      reject(error);
+    }
+  });
+}
+
+// Aktif sesi durdur
+function stopCurrentAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+    console.log('Content Script: Audio stopped');
+  }
 }
 
 // HTML escape

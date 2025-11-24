@@ -22,9 +22,6 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Aktif ses oynatma için global değişken
-let currentAudio = null;
-
 // Context menu tıklamalarını dinle
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const selectedText = info.selectionText;
@@ -96,9 +93,9 @@ async function speakText(text) {
       throw new Error('Ses verisi alınamadı - Response: ' + JSON.stringify(data).substring(0, 200));
     }
 
-    // Base64 ses verisini çal
-    console.log('Attempting to play audio...');
-    playAudioFromBase64(data.audioBase64, data.mimeType || 'audio/mpeg');
+    // Active tab'a audio gönder (Service Worker'da Audio çalışmaz)
+    console.log('Sending audio to active tab...');
+    await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg');
 
     showNotification(
       'Seslendirme Başarılı!',
@@ -112,76 +109,62 @@ async function speakText(text) {
   }
 }
 
-// Base64 ses verisini oynat (Service Worker uyumlu - Data URL kullanır)
-function playAudioFromBase64(base64Data, mimeType = 'audio/mpeg') {
+// Active tab'a audio gönder (Content script'te oynatılacak)
+async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg') {
   try {
-    console.log('=== playAudioFromBase64 Debug ===');
-    console.log('Input base64 length:', base64Data?.length);
+    console.log('=== sendAudioToActiveTab Debug ===');
+    console.log('Audio base64 length:', base64Data?.length);
     console.log('MIME type:', mimeType);
 
-    // Önce aktif sesi durdur
-    stopCurrentAudio();
+    // Active tab'ı al
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    // Base64 validation
-    if (!base64Data || base64Data.length === 0) {
-      throw new Error('Base64 data boş');
+    if (!tab) {
+      throw new Error('Active tab bulunamadı');
     }
 
-    // Service Worker'da URL.createObjectURL çalışmaz
-    // Data URL kullanmalıyız
-    const dataUrl = `data:${mimeType};base64,${base64Data}`;
-    console.log('Data URL created, length:', dataUrl.length);
+    console.log('Sending to tab:', tab.id, tab.url);
 
-    // Audio element oluştur ve oynat
-    currentAudio = new Audio(dataUrl);
+    // Content script'e mesaj gönder
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      action: 'playAudio',
+      audioBase64: base64Data,
+      mimeType: mimeType
+    });
 
-    currentAudio.onloadedmetadata = () => {
-      console.log('Audio metadata loaded, duration:', currentAudio.duration);
-    };
-
-    currentAudio.oncanplaythrough = () => {
-      console.log('Audio can play through');
-    };
-
-    currentAudio.onplay = () => {
-      console.log('Audio started playing');
-    };
-
-    currentAudio.onended = () => {
-      console.log('Audio playback ended');
-      currentAudio = null;
-    };
-
-    currentAudio.onerror = (e) => {
-      console.error('Audio playback error:', e);
-      console.error('Error details:', currentAudio.error);
-      currentAudio = null;
-      showNotification('Ses Oynatma Hatası', 'Ses dosyası oynatılamadı.', 'error');
-    };
-
-    console.log('Calling play()...');
-    currentAudio.play()
-      .then(() => {
-        console.log('play() promise resolved successfully');
-      })
-      .catch((err) => {
-        console.error('play() promise rejected:', err);
-        showNotification('Ses Oynatma Hatası', `Oynatma başarısız: ${err.message}`, 'error');
-      });
+    if (response && response.success) {
+      console.log('Audio sent successfully to content script');
+    } else {
+      throw new Error(response?.error || 'Content script yanıt vermedi');
+    }
 
   } catch (error) {
-    console.error('playAudioFromBase64 exception:', error);
-    console.error('Error stack:', error.stack);
-    showNotification('Ses Oynatma Hatası', `Hata: ${error.message}`, 'error');
+    console.error('sendAudioToActiveTab error:', error);
+
+    // Eğer content script yüklü değilse kullanıcıya bildir
+    if (error.message.includes('Could not establish connection') ||
+        error.message.includes('Receiving end does not exist')) {
+      showNotification(
+        'Content Script Hatası',
+        'Sayfayı yenileyin ve tekrar deneyin.',
+        'error'
+      );
+    } else {
+      throw error;
+    }
   }
 }
 
-// Aktif sesi durdur
-function stopCurrentAudio() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio = null;
+// Aktif sesi durdur (Active tab'da)
+async function stopCurrentAudio() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      await chrome.tabs.sendMessage(tab.id, { action: 'stopAudio' });
+    }
+  } catch (error) {
+    // Sessizce başarısız ol
+    console.log('Could not stop audio:', error);
   }
 }
 
@@ -310,8 +293,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true; // Async response için
   } else if (request.action === 'stopSpeaking') {
-    stopCurrentAudio();
-    sendResponse({ success: true });
+    stopCurrentAudio()
+      .then(() => sendResponse({ success: true }))
+      .catch(() => sendResponse({ success: true })); // Hata olsa bile success dön
+    return true; // Async response için
   }
   return true;
 });
