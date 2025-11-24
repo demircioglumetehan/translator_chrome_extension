@@ -51,7 +51,7 @@ async function speakText(text) {
     stopCurrentAudio();
 
     // Ayarları al
-    const result = await chrome.storage.sync.get(['n8nWebhook', 'targetLanguage']);
+    const result = await chrome.storage.sync.get(['n8nWebhook', 'targetLanguage', 'playbackRate']);
     const webhookUrl = result.n8nWebhook;
     const targetLanguage = result.targetLanguage || 'Turkish';
 
