@@ -257,78 +257,22 @@ async function summarizeText(text, tabId) {
     console.log('=== Özet Response Debug ===');
     console.log('Full response:', data);
     console.log('success:', data.success);
-    console.log('summary:', data.summary);
     console.log('audioBase64 exists:', !!data.audioBase64);
     console.log('audioBase64 length:', data.audioBase64?.length || 0);
 
-    if (!data.success || !data.summary) {
-      throw new Error('Özet alınamadı');
+    if (!data.success || !data.audioBase64) {
+      throw new Error('Özet sesi alınamadı');
     }
 
-    // Content script'e özeti gönder (sayfa içinde gösterim)
-    chrome.tabs.sendMessage(tabId, {
-      action: 'showSummary',
-      summary: data.summary,
-      stats: {
-        originalLength: data.originalLength,
-        summaryLength: data.summaryLength,
-        compressionRatio: data.compressionRatio
-      }
-    }).catch(() => {
-      // Content script hazır değilse hata verme
-      console.log('Could not send summary to content script');
-    });
-
-    // Eğer audio varsa, seslendir
-    if (data.audioBase64) {
-      console.log('Playing summary audio...');
-      await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg', playbackRate);
-      showNotification('Özet Hazır!', 'Özet seslendiriliyor...', 'success');
-    } else {
-      // Audio yoksa sadece özeti göster
-      showSummaryNotification(data);
-    }
+    // Audio'yu seslendir
+    console.log('Playing summary audio...');
+    await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg', playbackRate);
+    showNotification('Özet Hazır!', 'Özet seslendiriliyor...', 'success');
 
   } catch (error) {
     console.error('Özetleme hatası:', error);
     showNotification('Özetleme Hatası', `Hata: ${error.message}`, 'error');
   }
-}
-
-// Özet bildirimi göster
-function showSummaryNotification(data) {
-  const message = data.summary.length > 200
-    ? data.summary.substring(0, 200) + '...'
-    : data.summary;
-
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icons/icon48.png',
-    title: 'Özet Hazır!',
-    message: message,
-    priority: 2,
-    requireInteraction: true,
-    buttons: [
-      { title: 'Kopyala' }
-    ]
-  });
-
-  // Bildirim butonlarını dinle
-  chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
-    if (buttonIndex === 0) {
-      // Kopyala butonu
-      copyToClipboard(data.summary);
-      showNotification('Kopyalandı!', 'Özet panoya kopyalandı.', 'success');
-    }
-  });
-}
-
-// Panoya kopyala
-function copyToClipboard(text) {
-  // Chrome'da offscreen document veya tab kullanarak kopyalama
-  navigator.clipboard.writeText(text).catch(() => {
-    console.error('Panoya kopyalama başarısız');
-  });
 }
 
 // Bildirim göster
