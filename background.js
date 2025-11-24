@@ -201,7 +201,7 @@ async function stopCurrentAudio() {
   }
 }
 
-// Metni özetleme (n8n + ChatGPT) fonksiyonu
+// Metni özetleme (n8n + ChatGPT + TTS) fonksiyonu
 async function summarizeText(text, tabId) {
   if (!text) return;
 
@@ -217,7 +217,7 @@ async function summarizeText(text, tabId) {
     }
 
     // Yükleniyor bildirimi
-    showNotification('Özetleniyor...', 'Metin özetleniyor...', 'info');
+    showNotification('Özetleniyor...', 'Metin özetleniyor ve seslendiriliyor...', 'info');
 
     // n8n'e POST isteği gönder
     const response = await fetch(webhookUrl, {
@@ -240,14 +240,18 @@ async function summarizeText(text, tabId) {
 
     const data = await response.json();
 
+    console.log('=== Özet Response Debug ===');
+    console.log('Full response:', data);
+    console.log('success:', data.success);
+    console.log('summary:', data.summary);
+    console.log('audioBase64 exists:', !!data.audioBase64);
+    console.log('audioBase64 length:', data.audioBase64?.length || 0);
+
     if (!data.success || !data.summary) {
       throw new Error('Özet alınamadı');
     }
 
-    // Özeti göster
-    showSummaryNotification(data);
-
-    // Content script'e özeti gönder (gelecekte sayfa içinde gösterim için)
+    // Content script'e özeti gönder (sayfa içinde gösterim)
     chrome.tabs.sendMessage(tabId, {
       action: 'showSummary',
       summary: data.summary,
@@ -258,7 +262,18 @@ async function summarizeText(text, tabId) {
       }
     }).catch(() => {
       // Content script hazır değilse hata verme
+      console.log('Could not send summary to content script');
     });
+
+    // Eğer audio varsa, seslendir
+    if (data.audioBase64) {
+      console.log('Playing summary audio...');
+      await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg');
+      showNotification('Özet Hazır!', 'Özet seslendiriliyor...', 'success');
+    } else {
+      // Audio yoksa sadece özeti göster
+      showSummaryNotification(data);
+    }
 
   } catch (error) {
     console.error('Özetleme hatası:', error);
