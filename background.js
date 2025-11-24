@@ -80,11 +80,24 @@ async function speakText(text) {
 
     const data = await response.json();
 
+    // DEBUG: n8n'den gelen veriyi logla
+    console.log('=== n8n Response Debug ===');
+    console.log('Full response:', data);
+    console.log('success:', data.success);
+    console.log('audioBase64 exists:', !!data.audioBase64);
+    console.log('audioBase64 length:', data.audioBase64?.length || 0);
+    console.log('mimeType:', data.mimeType);
+    console.log('translatedText:', data.translatedText);
+    console.log('First 100 chars of base64:', data.audioBase64?.substring(0, 100));
+    console.log('========================');
+
     if (!data.success || !data.audioBase64) {
-      throw new Error('Ses verisi alınamadı');
+      console.error('Validation failed:', { success: data.success, hasAudio: !!data.audioBase64 });
+      throw new Error('Ses verisi alınamadı - Response: ' + JSON.stringify(data).substring(0, 200));
     }
 
     // Base64 ses verisini çal
+    console.log('Attempting to play audio...');
     playAudioFromBase64(data.audioBase64, data.mimeType || 'audio/mpeg');
 
     showNotification(
@@ -99,42 +112,66 @@ async function speakText(text) {
   }
 }
 
-// Base64 ses verisini oynat
+// Base64 ses verisini oynat (Service Worker uyumlu - Data URL kullanır)
 function playAudioFromBase64(base64Data, mimeType = 'audio/mpeg') {
   try {
+    console.log('=== playAudioFromBase64 Debug ===');
+    console.log('Input base64 length:', base64Data?.length);
+    console.log('MIME type:', mimeType);
+
     // Önce aktif sesi durdur
     stopCurrentAudio();
 
-    // Base64'ü blob'a çevir
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    // Base64 validation
+    if (!base64Data || base64Data.length === 0) {
+      throw new Error('Base64 data boş');
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
 
-    // Blob URL oluştur
-    const audioUrl = URL.createObjectURL(blob);
+    // Service Worker'da URL.createObjectURL çalışmaz
+    // Data URL kullanmalıyız
+    const dataUrl = `data:${mimeType};base64,${base64Data}`;
+    console.log('Data URL created, length:', dataUrl.length);
 
     // Audio element oluştur ve oynat
-    currentAudio = new Audio(audioUrl);
+    currentAudio = new Audio(dataUrl);
+
+    currentAudio.onloadedmetadata = () => {
+      console.log('Audio metadata loaded, duration:', currentAudio.duration);
+    };
+
+    currentAudio.oncanplaythrough = () => {
+      console.log('Audio can play through');
+    };
+
+    currentAudio.onplay = () => {
+      console.log('Audio started playing');
+    };
 
     currentAudio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
+      console.log('Audio playback ended');
       currentAudio = null;
     };
 
     currentAudio.onerror = (e) => {
-      console.error('Ses oynatma hatası:', e);
-      URL.revokeObjectURL(audioUrl);
+      console.error('Audio playback error:', e);
+      console.error('Error details:', currentAudio.error);
       currentAudio = null;
       showNotification('Ses Oynatma Hatası', 'Ses dosyası oynatılamadı.', 'error');
     };
 
-    currentAudio.play();
+    console.log('Calling play()...');
+    currentAudio.play()
+      .then(() => {
+        console.log('play() promise resolved successfully');
+      })
+      .catch((err) => {
+        console.error('play() promise rejected:', err);
+        showNotification('Ses Oynatma Hatası', `Oynatma başarısız: ${err.message}`, 'error');
+      });
+
   } catch (error) {
-    console.error('Ses oynatma hatası:', error);
+    console.error('playAudioFromBase64 exception:', error);
+    console.error('Error stack:', error.stack);
     showNotification('Ses Oynatma Hatası', `Hata: ${error.message}`, 'error');
   }
 }
