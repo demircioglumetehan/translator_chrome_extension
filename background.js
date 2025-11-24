@@ -125,33 +125,66 @@ async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg') {
 
     console.log('Sending to tab:', tab.id, tab.url);
 
-    // Content script'e mesaj gönder
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'playAudio',
-      audioBase64: base64Data,
-      mimeType: mimeType
-    });
+    // Chrome internal sayfalarında content script çalışmaz
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      throw new Error('Chrome internal sayfalarında ses oynatılamaz. Normal bir web sayfasına gidin.');
+    }
 
-    if (response && response.success) {
-      console.log('Audio sent successfully to content script');
-    } else {
-      throw new Error(response?.error || 'Content script yanıt vermedi');
+    try {
+      // Content script'e mesaj gönder
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'playAudio',
+        audioBase64: base64Data,
+        mimeType: mimeType
+      });
+
+      if (response && response.success) {
+        console.log('Audio sent successfully to content script');
+        return;
+      } else {
+        throw new Error(response?.error || 'Content script yanıt vermedi');
+      }
+    } catch (msgError) {
+      // Eğer content script yüklü değilse, programmatically inject et
+      if (msgError.message.includes('Could not establish connection') ||
+          msgError.message.includes('Receiving end does not exist')) {
+
+        console.log('Content script not found, injecting...');
+
+        // Content script'i inject et
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+
+        console.log('Content script injected, waiting 100ms...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Tekrar mesaj gönder
+        const retryResponse = await chrome.tabs.sendMessage(tab.id, {
+          action: 'playAudio',
+          audioBase64: base64Data,
+          mimeType: mimeType
+        });
+
+        if (retryResponse && retryResponse.success) {
+          console.log('Audio sent successfully after injection');
+        } else {
+          throw new Error(retryResponse?.error || 'Content script yanıt vermedi (retry)');
+        }
+      } else {
+        throw msgError;
+      }
     }
 
   } catch (error) {
     console.error('sendAudioToActiveTab error:', error);
-
-    // Eğer content script yüklü değilse kullanıcıya bildir
-    if (error.message.includes('Could not establish connection') ||
-        error.message.includes('Receiving end does not exist')) {
-      showNotification(
-        'Content Script Hatası',
-        'Sayfayı yenileyin ve tekrar deneyin.',
-        'error'
-      );
-    } else {
-      throw error;
-    }
+    showNotification(
+      'Ses Oynatma Hatası',
+      error.message || 'Ses oynatılamadı. Normal bir web sayfasında deneyin.',
+      'error'
+    );
+    throw error;
   }
 }
 
