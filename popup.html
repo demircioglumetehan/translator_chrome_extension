@@ -14,33 +14,48 @@
     </header>
 
     <div class="section">
+      <h2>Dil Ayarları</h2>
+
+      <div class="form-group">
+        <label for="targetLanguage">Hedef Dil (Çeviri ve Seslendirme):</label>
+        <select id="targetLanguage">
+          <option value="Turkish">Türkçe</option>
+          <option value="English">İngilizce</option>
+          <option value="German">Almanca</option>
+          <option value="French">Fransızca</option>
+          <option value="Spanish">İspanyolca</option>
+          <option value="Italian">İtalyanca</option>
+          <option value="Russian">Rusça</option>
+          <option value="Japanese">Japonca</option>
+          <option value="Chinese">Çince</option>
+          <option value="Arabic">Arapça</option>
+          <option value="Portuguese">Portekizce</option>
+          <option value="Dutch">Hollandaca</option>
+          <option value="Korean">Korece</option>
+        </select>
+        <small>Seçili metin bu dile çevrilecek ve seslendirilecek</small>
+      </div>
+    </div>
+
+    <div class="section">
       <h2>Ses Ayarları</h2>
 
       <div class="form-group">
-        <label for="language">Dil Seçimi:</label>
-        <select id="language">
-          <option value="tr-TR">Türkçe</option>
-          <option value="en-US">İngilizce (US)</option>
-          <option value="en-GB">İngilizce (UK)</option>
-          <option value="de-DE">Almanca</option>
-          <option value="fr-FR">Fransızca</option>
-          <option value="es-ES">İspanyolca</option>
-          <option value="it-IT">İtalyanca</option>
-          <option value="ru-RU">Rusça</option>
-          <option value="ja-JP">Japonca</option>
-          <option value="zh-CN">Çince</option>
-          <option value="ar-SA">Arapça</option>
+        <label for="playbackSpeed">Ses Hızı:</label>
+        <select id="playbackSpeed">
+          <option value="0.25">0.25x (Çok Yavaş)</option>
+          <option value="0.5">0.5x (Yavaş)</option>
+          <option value="0.75">0.75x (Biraz Yavaş)</option>
+          <option value="1" selected>1.0x (Normal)</option>
+          <option value="1.25">1.25x (Biraz Hızlı)</option>
+          <option value="1.5">1.5x (Hızlı)</option>
+          <option value="1.75">1.75x (Daha Hızlı)</option>
+          <option value="2">2.0x (Çok Hızlı)</option>
+          <option value="2.5">2.5x (Çok Çok Hızlı)</option>
+          <option value="3">3.0x (Maksimum Hızlı)</option>
+          <option value="4">4.0x (Ultra Hızlı)</option>
         </select>
-      </div>
-
-      <div class="form-group">
-        <label for="voiceRate">Hız: <span id="rateValue">1.0</span>x</label>
-        <input type="range" id="voiceRate" min="0.5" max="2.0" step="0.1" value="1.0">
-      </div>
-
-      <div class="form-group">
-        <label for="voicePitch">Ton: <span id="pitchValue">1.0</span></label>
-        <input type="range" id="voicePitch" min="0.5" max="2.0" step="0.1" value="1.0">
+        <small>Seslendirme hızını ayarlayın (1.0x normal hız)</small>
       </div>
     </div>
 
@@ -52,9 +67,9 @@
         <input
           type="url"
           id="n8nWebhook"
-          placeholder="https://your-n8n.com/webhook/..."
+          placeholder="https://your-n8n.com/webhook/chrome-tts-extension"
         >
-        <small>Metni özetleme için n8n webhook URL'nizi girin</small>
+        <small>Seslendirme ve özetleme için n8n webhook URL'nizi girin</small>
       </div>
     </div>
 
