@@ -1,5 +1,6 @@
 // DOM elementleri
 const targetLanguageSelect = document.getElementById('targetLanguage');
+const playbackRateSelect = document.getElementById('playbackRate');
 const n8nWebhookInput = document.getElementById('n8nWebhook');
 const testTextArea = document.getElementById('testText');
 const testSpeakBtn = document.getElementById('testSpeakBtn');
@@ -26,13 +27,16 @@ testWebhookBtn.addEventListener('click', testWebhook);
 // Ayarları yükle
 function loadSettings() {
   chrome.storage.sync.get(
-    ['targetLanguage', 'n8nWebhook'],
+    ['targetLanguage', 'n8nWebhook', 'playbackRate'],
     (result) => {
       if (result.targetLanguage) {
         targetLanguageSelect.value = result.targetLanguage;
       }
       if (result.n8nWebhook) {
         n8nWebhookInput.value = result.n8nWebhook;
+      }
+      if (result.playbackRate) {
+        playbackRateSelect.value = result.playbackRate;
       }
     }
   );
@@ -42,6 +46,7 @@ function loadSettings() {
 function saveSettings() {
   const settings = {
     targetLanguage: targetLanguageSelect.value,
+    playbackRate: parseFloat(playbackRateSelect.value),
     n8nWebhook: n8nWebhookInput.value.trim()
   };
 

@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: true });
   } else if (request.action === 'playAudio') {
     // Audio oynat
-    playAudioFromBase64(request.audioBase64, request.mimeType)
+    playAudioFromBase64(request.audioBase64, request.mimeType, request.playbackRate)
       .then(() => sendResponse({ success: true }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true; // Async response için
@@ -116,10 +116,11 @@ function speakSummary(summary) {
 }
 
 // Audio oynatma fonksiyonu (Content Script'te çalışır)
-async function playAudioFromBase64(base64Data, mimeType = 'audio/mpeg') {
+async function playAudioFromBase64(base64Data, mimeType = 'audio/mpeg', playbackRate = 1.0) {
   return new Promise((resolve, reject) => {
     try {
       console.log('Content Script: Playing audio, base64 length:', base64Data?.length);
+      console.log('Content Script: Playback rate:', playbackRate);
 
       // Önce aktif sesi durdur
       stopCurrentAudio();
@@ -134,6 +135,9 @@ async function playAudioFromBase64(base64Data, mimeType = 'audio/mpeg') {
 
       // Audio element oluştur
       currentAudio = new Audio(dataUrl);
+
+      // Playback rate'i ayarla
+      currentAudio.playbackRate = playbackRate;
 
       currentAudio.onloadedmetadata = () => {
         console.log('Content Script: Audio metadata loaded, duration:', currentAudio.duration);

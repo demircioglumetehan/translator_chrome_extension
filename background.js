@@ -15,9 +15,16 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 
   // Varsayılan ayarları kaydet
-  chrome.storage.sync.get(['targetLanguage', 'n8nWebhook'], (result) => {
+  chrome.storage.sync.get(['targetLanguage', 'n8nWebhook', 'playbackRate'], (result) => {
+    const defaults = {};
     if (!result.targetLanguage) {
-      chrome.storage.sync.set({ targetLanguage: 'Turkish' });
+      defaults.targetLanguage = 'Turkish';
+    }
+    if (!result.playbackRate) {
+      defaults.playbackRate = 1.0;
+    }
+    if (Object.keys(defaults).length > 0) {
+      chrome.storage.sync.set(defaults);
     }
   });
 });
@@ -93,9 +100,12 @@ async function speakText(text) {
       throw new Error('Ses verisi alınamadı - Response: ' + JSON.stringify(data).substring(0, 200));
     }
 
+    // Playback rate'i al
+    const playbackRate = result.playbackRate || 1.0;
+
     // Active tab'a audio gönder (Service Worker'da Audio çalışmaz)
     console.log('Sending audio to active tab...');
-    await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg');
+    await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg', playbackRate);
 
     showNotification(
       'Seslendirme Başarılı!',
@@ -110,11 +120,12 @@ async function speakText(text) {
 }
 
 // Active tab'a audio gönder (Content script'te oynatılacak)
-async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg') {
+async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg', playbackRate = 1.0) {
   try {
     console.log('=== sendAudioToActiveTab Debug ===');
     console.log('Audio base64 length:', base64Data?.length);
     console.log('MIME type:', mimeType);
+    console.log('Playback rate:', playbackRate);
 
     // Active tab'ı al
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -135,7 +146,8 @@ async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg') {
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'playAudio',
         audioBase64: base64Data,
-        mimeType: mimeType
+        mimeType: mimeType,
+        playbackRate: playbackRate
       });
 
       if (response && response.success) {
@@ -164,7 +176,8 @@ async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg') {
         const retryResponse = await chrome.tabs.sendMessage(tab.id, {
           action: 'playAudio',
           audioBase64: base64Data,
-          mimeType: mimeType
+          mimeType: mimeType,
+          playbackRate: playbackRate
         });
 
         if (retryResponse && retryResponse.success) {
@@ -207,9 +220,10 @@ async function summarizeText(text, tabId) {
 
   try {
     // Ayarları al
-    const result = await chrome.storage.sync.get(['n8nWebhook', 'targetLanguage']);
+    const result = await chrome.storage.sync.get(['n8nWebhook', 'targetLanguage', 'playbackRate']);
     const webhookUrl = result.n8nWebhook;
     const targetLanguage = result.targetLanguage || 'Turkish';
+    const playbackRate = result.playbackRate || 1.0;
 
     if (!webhookUrl) {
       showNotification('Webhook URL Bulunamadı', 'Lütfen eklenti ayarlarından n8n webhook URL\'sini girin.', 'error');
@@ -268,7 +282,7 @@ async function summarizeText(text, tabId) {
     // Eğer audio varsa, seslendir
     if (data.audioBase64) {
       console.log('Playing summary audio...');
-      await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg');
+      await sendAudioToActiveTab(data.audioBase64, data.mimeType || 'audio/mpeg', playbackRate);
       showNotification('Özet Hazır!', 'Özet seslendiriliyor...', 'success');
     } else {
       // Audio yoksa sadece özeti göster
