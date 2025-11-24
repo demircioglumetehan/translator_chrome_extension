@@ -24,6 +24,14 @@ stopSpeakBtn.addEventListener('click', stopSpeaking);
 // Webhook test butonu
 testWebhookBtn.addEventListener('click', testWebhook);
 
+// Ses hızı değiştiğinde otomatik kaydet
+playbackRateSelect.addEventListener('change', () => {
+  const playbackRate = parseFloat(playbackRateSelect.value);
+  chrome.storage.sync.set({ playbackRate }, () => {
+    showStatus(`Ses hızı ${playbackRate}x olarak ayarlandı ✓`, 'success');
+  });
+});
+
 // Ayarları yükle
 function loadSettings() {
   chrome.storage.sync.get(
