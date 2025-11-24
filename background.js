@@ -137,7 +137,7 @@ async function sendAudioToActiveTab(base64Data, mimeType = 'audio/mpeg', playbac
     console.log('Sending to tab:', tab.id, tab.url);
 
     // Chrome internal sayfalarında content script çalışmaz
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://'))) {
       throw new Error('Chrome internal sayfalarında ses oynatılamaz. Normal bir web sayfasına gidin.');
     }
 
@@ -351,6 +351,15 @@ function showNotification(title, message, type = 'info') {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'speakText') {
     speakText(request.text)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true; // Async response için
+  } else if (request.action === 'summarizeText') {
+    // Active tab id'yi al
+    chrome.tabs.query({ active: true, currentWindow: true })
+      .then(([tab]) => {
+        return summarizeText(request.text, tab.id);
+      })
       .then(() => sendResponse({ success: true }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true; // Async response için

@@ -145,25 +145,46 @@
     },
     {
       "parameters": {
-        "jsCode": "const summary = items[0].json.output;\nconst originalText = items[0].json.body.text;\n\nreturn [{\n  json: {\n    summary: summary,\n    originalLength: originalText.length,\n    summaryLength: summary.length,\n    compressionRatio: (summary.length / originalText.length * 100).toFixed(2) + '%'\n  }\n}];"
+        "model": "tts-1-hd",
+        "voice": "nova",
+        "input": "={{ $json.output }}",
+        "options": {
+          "responseFormat": "mp3"
+        }
       },
-      "id": "code-stats",
-      "name": "Calculate Stats",
+      "id": "openai-tts-summary",
+      "name": "OpenAI TTS - Summary",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Binary veriyi base64'e çevir ve stats hesapla\nconst binaryData = items[0].binary.audio;\nconst audioBase64 = Buffer.from(binaryData.data).toString('base64');\nconst summary = items[0].json.output;\nconst originalText = items[0].json.body.text;\n\nreturn [{\n  json: {\n    audioBase64: audioBase64,\n    mimeType: 'audio/mpeg',\n    summary: summary,\n    originalLength: originalText.length,\n    summaryLength: summary.length,\n    compressionRatio: (summary.length / originalText.length * 100).toFixed(2) + '%'\n  }\n}];"
+      },
+      "id": "code-summary-base64",
+      "name": "Convert Summary to Base64",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 400]
+      "position": [1250, 400]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"success\": true, \"summary\": $json.summary, \"originalLength\": $json.originalLength, \"summaryLength\": $json.summaryLength, \"compressionRatio\": $json.compressionRatio } }}",
+        "responseBody": "={{ { \"success\": true, \"summary\": $json.summary, \"audioBase64\": $json.audioBase64, \"mimeType\": $json.mimeType, \"originalLength\": $json.originalLength, \"summaryLength\": $json.summaryLength, \"compressionRatio\": $json.compressionRatio } }}",
         "options": {}
       },
       "id": "respond-webhook-summary",
       "name": "Respond - Summary",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1250, 400]
+      "position": [1450, 400]
     },
     {
       "parameters": {
@@ -264,14 +285,25 @@
       "main": [
         [
           {
-            "node": "Calculate Stats",
+            "node": "OpenAI TTS - Summary",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Calculate Stats": {
+    "OpenAI TTS - Summary": {
+      "main": [
+        [
+          {
+            "node": "Convert Summary to Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Summary to Base64": {
       "main": [
         [
           {

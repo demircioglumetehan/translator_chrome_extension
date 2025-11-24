@@ -4,6 +4,7 @@ const playbackRateSelect = document.getElementById('playbackRate');
 const n8nWebhookInput = document.getElementById('n8nWebhook');
 const testTextArea = document.getElementById('testText');
 const testSpeakBtn = document.getElementById('testSpeakBtn');
+const testSummarizeBtn = document.getElementById('testSummarizeBtn');
 const stopSpeakBtn = document.getElementById('stopSpeakBtn');
 const testWebhookBtn = document.getElementById('testWebhookBtn');
 const saveBtn = document.getElementById('saveBtn');
@@ -17,6 +18,9 @@ saveBtn.addEventListener('click', saveSettings);
 
 // Test seslendir butonu
 testSpeakBtn.addEventListener('click', testSpeak);
+
+// Test özetleme butonu
+testSummarizeBtn.addEventListener('click', testSummarize);
 
 // Seslendirmeyi durdur butonu
 stopSpeakBtn.addEventListener('click', stopSpeaking);
@@ -98,6 +102,34 @@ function stopSpeaking() {
       showStatus('Seslendirme durduruldu ⏹', 'success');
     }
   });
+}
+
+// Test özetleme
+async function testSummarize() {
+  const text = testTextArea.value.trim();
+  const targetLanguage = targetLanguageSelect.value;
+
+  if (!text) {
+    showStatus('Lütfen bir test metni girin!', 'error');
+    return;
+  }
+
+  showStatus('Metin özetleniyor ve seslendiriliyor... 📝', 'success');
+
+  chrome.runtime.sendMessage(
+    {
+      action: 'summarizeText',
+      text: text,
+      targetLanguage: targetLanguage
+    },
+    (response) => {
+      if (response && response.success) {
+        showStatus('Özetleme başarılı! ✓', 'success');
+      } else if (response && response.error) {
+        showStatus(`Hata: ${response.error}`, 'error');
+      }
+    }
+  );
 }
 
 // Webhook testi
